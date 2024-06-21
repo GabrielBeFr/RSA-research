@@ -1,0 +1,86 @@
+Topic: Failure of classic RSA for M-implicature
+
+--- Litteral listener: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 1: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 1: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 2: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 2: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 3: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 3: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 4: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 4: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 5: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 5: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 6: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 6: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 7: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 7: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 8: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 8: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 9: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 9: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
+--- Pragmatic speaker 10: ---
+[[0.73 0.73]
+ [0.27 0.27]]
+
+--- Pragmatic listener 10: ---
+[[0.67 0.33]
+ [0.67 0.33]]
+
