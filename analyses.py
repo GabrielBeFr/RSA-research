@@ -25,7 +25,6 @@ def asymptotic_analysis_alphas(alphas_list, rsa_model, world, version, depth, ve
         gains_list.append(gains)
 
     fig, axs = plt.subplots(len(alphas_list)+1, 4, figsize=(15, 25))
-    fig.suptitle("No Structural Zeros")
 
     axs[0,0].remove()
     im = axs[0,1].imshow(np.round(world["lexicon"],3), cmap='viridis', interpolation='nearest')
@@ -54,5 +53,57 @@ def asymptotic_analysis_alphas(alphas_list, rsa_model, world, version, depth, ve
 
         im = axs[1+i,3].imshow(np.round(last_speakers[i],3), cmap='viridis', interpolation='nearest')
         cbar = fig.colorbar(im, ax=axs[1+i,3])
+
+    plt.show()
+
+
+def asymptotic_analysis_lexica(alpha, rsa_model, worlds, version, depth, verbose):
+    entropies_list = []
+    values_list = []
+    gains_list = []
+    last_speakers = []
+
+    for world in worlds:
+        # Initialize the RSA model with verbose mode
+        rsa = rsa_model(world, save_directory='papers_experiments/',version=version, alpha=alpha, depth=depth)
+        # Run the RSA model
+        world, listeners, speakers = rsa.run(verbose)
+
+        last_speakers.append(speakers[-1])
+
+        entropies = [compute_shannon_conditional_entropy(world["priors"],speakers[1 + i//2]) for i in range((len(speakers)-1)*2)]
+        values = [compute_listener_value(alpha, world["priors"], listeners[(i+1)//2], speakers[1 + i//2]) for i in range((len(speakers)-1)*2)]
+        gains = [values[i] + entropies[i] for i in range((len(speakers)-1)*2)]
+
+        entropies_list.append(entropies)
+        values_list.append(values)
+        gains_list.append(gains)
+
+    fig, axs = plt.subplots(len(worlds), 5, figsize=(20, 20))
+    fig.suptitle(f"{world['surname']} with alpha={alpha}")
+
+    axs[0,0].set_title("Initial lexicon")
+    axs[0,1].set_title("Conditional entropy")
+    axs[0,2].set_title("Listener value")
+    axs[0,3].set_title("Gain function")
+    axs[0,4].set_title("Speaker")        
+
+    for i in range(len(worlds)):
+        axs[i,0].set_ylabel(f"World number {i}")
+
+        im = axs[i,0].imshow(np.round(worlds[i]["lexicon"],3), cmap='viridis', interpolation='nearest')
+        cbar = fig.colorbar(im, ax=axs[i,0])
+
+        axs[i,1].plot(entropies_list[i])
+
+        axs[i,2].plot(values_list[i])
+
+        axs[i,3].plot(gains_list[i])
+
+        # Add lines to the gain function plot
+        axs[i,3].axhline(max((1 - alpha),0) * np.log(len(world["meanings"])), linestyle=':', color='red')
+
+        im = axs[i,4].imshow(np.round(last_speakers[i],3), cmap='viridis', interpolation='nearest')
+        cbar = fig.colorbar(im, ax=axs[i,4])
 
     plt.show()
