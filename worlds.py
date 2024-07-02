@@ -50,12 +50,22 @@ world_bergen_2016_fig6 = {
     'priors': np.array([2/3, 1/3])
 }
 
+world_rate_distortion = {
+    'file_name': 'rate_distortion.txt',
+    'surname': 'Showing difference between RSA and RSA-RD',
+    'utterances': ['hat', 'glasses', 'mustache', 'friend'],
+    'meanings': ['only mustache', 'mustache and glasses', 'glasses and hat'],
+    'lexicon': np.array([[0, 0, 1], [0, 1, 1], [1, 1, 0], [1, 1, 1]]),
+    'costs': np.array([0, 0, 0, 0]),
+    'priors': np.array([1/3,1/3,1/3])
+}
+
 world_playground = {
     'file_name': 'playground.txt',
-    'surname': 'Deriving M-implicature with lexical uncertainty RSA',
-    'utterances': ['Nothing', 'long', 'SHORT'],
-    'meanings': ['FREQ', 'rare'],
-    'lexicon': np.array([[1, 1], [1, 1], [1, 1]]),
-    'costs': np.array([5, 2, 1]),
-    'priors': np.array([2/3, 1/3])
+    'surname': 'Testing',
+    'utterances': ['u1', 'u2', 'u3', 'u4', 'u5'],
+    'meanings': ['m1', 'm2', 'm3', 'm4', 'm5'],
+    'lexicon': np.array([[0, 1, 1, 0, 1], [1, 0, 1, 0, 0], [1, 0, 0, 1, 0], [1, 0, 0, 0, 1], [0, 0, 1, 1, 0]]),
+    'costs': np.array([0,0,0,0,0]),
+    'priors': np.array([1/5,1/5,1/5,1/5,1/5])
 }
