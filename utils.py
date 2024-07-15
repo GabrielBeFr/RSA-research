@@ -25,7 +25,7 @@ def compute_shannon_conditional_entropy(priors, probabilities):
     entropy = np.sum(entropy * priors)
     return entropy
 
-def compute_listener_value(alpha, priors, listener_probabilities, speaker_probabilities):
+def compute_listener_value(priors, listener_probabilities, speaker_probabilities):
     '''Compute the value of the listener.
     input:
     * alpha, a float, the speaker pragmatism parameter
@@ -40,7 +40,7 @@ def compute_listener_value(alpha, priors, listener_probabilities, speaker_probab
     * value, a float, the value of the listener
     '''
     value = np.sum(compute_xlogy(speaker_probabilities, listener_probabilities), axis=0)
-    value = alpha * np.sum(value * priors)
+    value = np.sum(value * priors)
     return value
 
 def compute_proportionality_factor(priors, listener_probabilities, speaker_probabilities):
