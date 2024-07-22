@@ -1,4 +1,4 @@
-Topic: Analyzes the asymptotic similarity between different initial lexica.
+Topic: Analysis of the asymptotic similarity between different initial lexica.
 
 --- Litteral listener: ---
 [[0.2 0.2 0.2 0.2 0.2]

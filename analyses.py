@@ -1,9 +1,12 @@
-from utils import compute_listener_value, compute_shannon_conditional_entropy
+from utils import compute_listener_value, compute_shannon_conditional_entropy, not_converged, compute_KL_div
 import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import display, clear_output
 import torch
-from NN_models import RSA_KL_model
+from NN_models import RSA_KL_model, run_model
+from tqdm import tqdm
+from pdb import set_trace
+
 
 def asymptotic_analysis_alphas(alphas_list, rsa_model, world, version, depth, verbose):
     entropies_list = []
@@ -137,15 +140,18 @@ def compare_GD_KL_RSA_with_classic_RSA(alpha, gamma, worlds, rsa_model, depth=20
         model = RSA_KL_model(alpha, gamma, priors, lexicon)
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
         losses = []
-        for i in range(max_iter):
+        i=0
+        while i <= max_iter and not_converged(losses):
             optimizer.zero_grad()
             loss = model()
             loss.backward()
             optimizer.step()
-            losses.append(loss.item())           
+            losses.append(loss.item()) 
+            i+=1      
 
-        GD_last_speakers.append(torch.nn.functional.normalize(model.speaker, p=1, dim=0).detach().numpy())
-        GD_gain_values.append(model.compute_speaker_entropy().item() + alpha * model.compute_listener_value().item())
+        final_speaker = model.get_speaker().detach().numpy()
+        GD_last_speakers.append(final_speaker)
+        GD_gain_values.append(model.get_RSA_gain().item())
         GD_loss_values.append(losses)
 
         # Run the RSA model
@@ -184,10 +190,92 @@ def compare_GD_KL_RSA_with_classic_RSA(alpha, gamma, worlds, rsa_model, depth=20
 
         axs[i,3].plot(RSA_gains_list[i])
         axs[i,3].axhline(y=GD_gain_values[i], color='red', linestyle='dotted')
-        axs[i,3].annotate(f'GD gain={GD_gain_values[i]:.2f}', xy=(0, GD_gain_values[i]), xytext=(0, GD_gain_values[i]+0.05), arrowprops=dict(facecolor='red', shrink=0.005))
-
+        axs[i,3].annotate(f'GD gain={GD_gain_values[i]:.2f}', xy=(0, GD_gain_values[i]), xytext=(0, GD_gain_values[i]), color='red')
+        
         axs[i,4].plot(GD_loss_values[i])        
 
     plt.show()
 
-    return
+
+def large_comparison_GD_KL_RSA_with_classic_RSA(alphas, gammas, rsa_model, num_measures=100, max_depth=100, version='RSA', max_iter=40000, learning_rate=0.01, x=4, y=4, verbose=False):
+    '''Compare the Neural Network implementation of RSA with the classic RSA implementation.
+    input:
+    * alphas, a list of floats, the speaker pragmatism parameters (default=1, the higher the more pragmatic)
+    * gamma, a list of floats, the KL divergence weights
+    * max_depth, an int, the maximum depth of the RSA model
+    * version, a string, the version of the RSA model
+    * max_iter, an int, the number of iterations
+    * learning_rate, a float, the learning rate
+    * verbose, a boolean, the verbose mode
+    '''
+
+    GD_last_speakers = np.zeros((len(alphas), len(gammas), num_measures, x, y))
+    GD_gain_list = np.zeros((len(alphas), len(gammas), num_measures))
+    RSA_last_speakers = np.zeros((len(alphas), len(gammas), num_measures, x, y))
+    RSA_gain_list = np.zeros((len(alphas), len(gammas), num_measures))
+
+    for alpha in alphas:
+        print(f"--- Alpha = {alpha} ---")
+        for gamma in gammas:
+            print(f"    * gamma = {gamma}:")
+            for i in tqdm(range(num_measures)):
+                # Initialize the world
+                world = {
+                    'file_name': 'comparison_GD_KL_RSA.txt',
+                    'surname': 'Comparison between classic RSA and gradient descent RSA',
+                    'lexicon': np.random.random((x,y)),
+                    'costs': np.zeros(x),
+                    'priors': np.ones(y)*(1/y)
+                }
+                # Run NN model
+                lexicon = torch.tensor(world["lexicon"], dtype=torch.float32)
+                priors = torch.tensor(world["priors"], dtype=torch.float32)
+                model = RSA_KL_model(alpha, gamma, priors, lexicon)
+                optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+                losses = []
+                j=0  
+                while j <= max_iter and not_converged(losses):
+                    optimizer.zero_grad()
+                    loss = model()
+                    loss.backward()
+                    optimizer.step()
+                    losses.append(loss.item()) 
+                    j+=1      
+
+                final_speaker = model.get_speaker().detach().numpy()
+                GD_last_speakers[alphas.index(alpha), gammas.index(gamma), i] = final_speaker
+                GD_gain_list[alphas.index(alpha), gammas.index(gamma), i] = model.get_RSA_gain().item()
+
+                # Run the RSA model
+                rsa = rsa_model(world, save_directory='papers_experiments/',version=version, alpha=alpha, depth=max_depth)
+                world, listeners, speakers = rsa.run(verbose)
+
+                RSA_last_speakers[alphas.index(alpha), gammas.index(gamma), i] = speakers[-1]
+                RSA_entropy = compute_shannon_conditional_entropy(world["priors"],speakers[-1])
+                RSA_value = compute_listener_value(world["priors"], listeners[-1], speakers[-1])
+                RSA_gain_list[alphas.index(alpha), gammas.index(gamma), i] = alpha * RSA_value + RSA_entropy
+
+    fig, axs = plt.subplots(len(alphas), 2, figsize=(10*2, 5*len(alphas)))
+    fig.suptitle(f"{world['surname']} for {num_measures} random initial lexica")
+
+    axs[0,0].set_title(f"KL divergence between RSA and GD-RSA")
+    axs[0,1].set_title(f"Difference between RSA and GD-RSA gains")  
+    
+    for i_alpha in range(len(alphas)):
+        print(GD_last_speakers[i_alpha])
+        print(RSA_last_speakers[i_alpha])
+        axs[i_alpha,0].set_ylabel(f"Alpha = {alphas[i_alpha]}")
+
+        kl_divergence = np.array([compute_KL_div(RSA_last_speakers[i_alpha, i_gamma], GD_last_speakers[i_alpha, i_gamma]) for i_gamma in range(len(gammas))])
+        print(kl_divergence)
+
+        axs[i_alpha,0].boxplot(kl_divergence.T, labels=gammas)
+        axs[i_alpha,0].set_xlabel('gamma')
+
+        gains_difference = RSA_gain_list[i_alpha] - GD_gain_list[i_alpha]
+        print(gains_difference)
+        
+        axs[i_alpha,1].boxplot(gains_difference.T, labels=gammas)
+        axs[i_alpha,1].set_xlabel('gamma')
+
+    plt.show()

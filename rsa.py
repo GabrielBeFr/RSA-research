@@ -34,13 +34,13 @@ class classic_RSA():
         '''
         if verbose:
             print(f'--- Lexicon: ---')
-            print(np.round(self.world["lexicon"],3))
+            print(np.round(self.world['lexicon'],3))
 
         listeners = []
         speakers = []
 
         with open(self.path, 'w') as f:
-            f.write(f'Topic: {self.world["surname"]}\n\n')
+            f.write(f"Topic: {self.world['surname']}\n\n")
 
             listener_probabilities = litteral_listener(self.world)
             listeners.append(listener_probabilities)
@@ -158,11 +158,11 @@ class lexical_uncertainty_RSA():
         output: 
         * probabilities, a 2D array of float, the probability of each meaning given each utterance
         '''
-        self.world["lexica"] = self.initiate_lexica(self.world['lexicon'])
+        self.world['lexica'] = self.initiate_lexica(self.world['lexicon'])
 
         with open(self.path, 'w') as f:
             f.write(f'RSA model with lexical uncertainty\n')
-            f.write(f'Topic: {self.world["surname"]}\n\n')
+            f.write(f"Topic: {self.world['surname']}\n\n")
 
             probabilities = litteral_listener_lexical_uncertainty(self.world)
             if verbose:
