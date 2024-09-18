@@ -2,23 +2,25 @@ import logging
 from multi_rsa import multi_rsa
 import torch
 import torch
+import datetime
 
 def setup_logging():
+    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file_name = f"logs/app_{current_datetime}.log"
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
+        level=logging.DEBUG,  # Set the logging level to DEBUG
+        format='%(levelname)s - %(message)s',  # Update the format argument
         handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('app.log')
+            logging.FileHandler(log_file_name)
         ]
     )
+    
 
-def main(initial_lexica, initial_prior, meanings, game_model, alpha, number_of_rounds, RSA_depth, device, verbose):
+def run_multi_rsa(initial_lexica, initial_prior, game_model, A_meaning=None, B_meaning=None, A_utterances=None, B_utterances=None, alpha=1, number_of_rounds=2, RSA_depth=1, device=None, verbose=False):
     setup_logging()
 
     # Run the RSA model
-    multi_rsa(initial_lexica, initial_prior, meanings, game_model, alpha, number_of_rounds, RSA_depth, device, verbose)
-    
+    multi_rsa(initial_lexica, initial_prior, game_model, A_meaning, B_meaning, A_utterances, B_utterances, alpha, number_of_rounds, RSA_depth, device, logging, verbose)
 
 if __name__ == "__main__":
         
