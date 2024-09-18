@@ -73,4 +73,4 @@ if __name__ == "__main__":
     RSA_depth = 1
     verbose = True 
 
-    main(initial_lexica, initial_prior, meanings, alpha, number_of_rounds, RSA_depth, device, verbose)
+    run_multi_rsa(initial_lexica, initial_prior, meanings, alpha, number_of_rounds, RSA_depth, device, verbose)
