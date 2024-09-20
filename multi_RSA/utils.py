@@ -12,10 +12,11 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def argmax(X: torch.tensor):
+def argmax(X: torch.tensor, K: int = 1):
     '''Reimplement the torch.argmax function with equal probabilities of being output for equal values of X.
     input:
     * X, a torch tensor
+    * K, an int, the number of argmaxes to return (default=1)
     
     output:
     * argmax, a torch tensor, the argmax of X along the given dimension

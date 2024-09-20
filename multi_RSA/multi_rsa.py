@@ -74,17 +74,20 @@ def multi_rsa(
     last_round = False
 
     if A_meaning is not None:
-        logging.info("Agent A observes: " + bcolors.OKBLUE + f"{game_model['mA'][A_meaning]} / id={A_meaning}." + bcolors.ENDC)
+        logging.info(f"Agent A observes: {game_model['mA'][A_meaning]} / id={A_meaning}.")
         print("Agent A observes: " + bcolors.OKBLUE + f"{game_model['mA'][A_meaning]} / id={A_meaning}." + bcolors.ENDC)
     else:
         logging.info("Agent A's meaning is not known.")
         print("Agent A's meaning is not known.")
     if B_meaning is not None:
-        logging.info("Agent B observes: " + bcolors.OKBLUE + f"{game_model['mB'][B_meaning]} / id={B_meaning}." + bcolors.ENDC)
+        logging.info(f"Agent B observes: {game_model['mB'][B_meaning]} / id={B_meaning}.")
         print("Agent B observes: " + bcolors.OKBLUE + f"{game_model['mB'][B_meaning]} / id={B_meaning}." + bcolors.ENDC)
     else:
         logging.info("Agent B's meaning is not known.")
         print("Agent B's meaning is not known.")
+
+    estimations = [[],[]]
+    produced_utterances = [[],[]]
 
     for round in range(number_of_rounds):
         logging.info(f"Round: {round}")
@@ -103,7 +106,8 @@ def multi_rsa(
             utterance = argmax(pragmatic_speaker[A_meaning])
         else:
             utterance = A_utterances[round]
-        logging.info(f"Utterance of Agent A: " + bcolors.OKGREEN + f"{game_model['u'][utterance]}" + bcolors.ENDC)
+        produced_utterances[0].append(utterance)
+        logging.info(f"Utterance of Agent A: {game_model['u'][utterance]}")
         if verbose:
             print(f"Utterance of Agent A: " + bcolors.OKGREEN + f"{game_model['u'][utterance]}" + bcolors.ENDC)
 
@@ -117,11 +121,12 @@ def multi_rsa(
             # if last_round and verbose:
             #     logging.info(f"Pragmatic Listener Agent B: {pragmatic_listener}")
 
-            # Compute the estimated meanings by agent B
+            # Compute the estimated truths by agent B
             estimated_y = argmax(pragmatic_listener[B_meaning, :, utterance])
-            logging.info(f"Estimated meaning by Agent B: " + bcolors.OKCYAN + f"{game_model['y'][estimated_y]}" + bcolors.ENDC)
+            estimations[1].append(estimated_y)
+            logging.info(f"Estimated truth by Agent B: {game_model['y'][estimated_y]}")
             if verbose or last_round:
-                print(f"Estimated meaning by Agent B: " + bcolors.OKCYAN + f"{game_model['y'][estimated_y]}" + bcolors.ENDC)
+                print(f"Estimated truth by Agent B: " + bcolors.OKCYAN + f"{game_model['y'][estimated_y]}" + bcolors.ENDC)
         elif verbose:
             logging.info("Agent B's meaning is not known.")
             print("Agent B's meaning is not known.")
@@ -140,7 +145,8 @@ def multi_rsa(
             utterance = argmax(pragmatic_speaker[B_meaning])
         else:
             utterance = B_utterances[round]
-        logging.info(f"Utterance of Agent B: " + bcolors.HEADER + f"{game_model['v'][utterance]}" + bcolors.ENDC)
+        produced_utterances[1].append(utterance)
+        logging.info(f"Utterance of Agent B: {game_model['v'][utterance]}")
         if verbose:
             print(f"Utterance of Agent B: " + bcolors.HEADER + f"{game_model['v'][utterance]}" + bcolors.ENDC)
 
@@ -154,13 +160,16 @@ def multi_rsa(
             # if last_round and verbose:
             #     logging.info(f"Pragmatic Listener Agent A: {pragmatic_listener}")
 
-            # Compute the estimated meanings by agent A
+            # Compute the estimated truths by agent A
             estimated_y = argmax(pragmatic_listener[A_meaning, :, utterance])
-            logging.info(f"Estimated meaning by Agent A: " + bcolors.FAIL + f"{game_model['y'][estimated_y]}" + bcolors.ENDC)
+            estimations[0].append(estimated_y)
+            logging.info(f"Estimated truth by Agent A: {game_model['y'][estimated_y]}")
             if verbose or last_round:
-                print(f"Estimated meaning by Agent A: " + bcolors.FAIL + f"{game_model['y'][estimated_y]}" + bcolors.ENDC)
+                print(f"Estimated truth by Agent A: " + bcolors.FAIL + f"{game_model['y'][estimated_y]}" + bcolors.ENDC)
         elif verbose:
             print("Agent A's meaning is unknown.")
         else:
             logging.info("Agent A's meaning is unknown.")
+
+    return estimations, produced_utterances
         
