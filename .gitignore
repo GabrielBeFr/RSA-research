@@ -1,2 +1,6 @@
 __pycache__/
 papers_experiments/
+bash/
+multi_RSA/planning_inference/data/
+multi_RSA/logs/
+multi_RSA/plots/
