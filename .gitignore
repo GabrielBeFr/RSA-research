@@ -1,6 +1,9 @@
 __pycache__/
-papers_experiments/
+classic_RSA/__pycache__/
+classic_RSA/papers_experiments/
 logs/
 .vscode/
 Arthur_RSA/
 multi_RSA/planning_inference/data
+multi_RSA/__pycache__/
+multi_RSA/logs/
