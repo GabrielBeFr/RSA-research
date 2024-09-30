@@ -207,8 +207,6 @@ if __name__ == "__main__":
         else: # if the words are not mutually exclusive, we interpret the message as "word 1" and "word 2"
             return torch.any(target_vector * word_meaning_correspondancy(utterance[0], meaning) * word_meaning_correspondancy(utterance[1], meaning)).item()
 
-
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     lexicon_A = torch.zeros((len(meanings_A), len(utterances)), device=device, dtype=torch.float32)
@@ -231,7 +229,7 @@ if __name__ == "__main__":
 
     # Prepare data collection and analysis
     ground_truth = np.array([1, 5, 4, 2, 5, 6, 1, 4, 3, 3])
-    results = {}
+    results_json = {}
 
     now = datetime.datetime.now()
     date_string = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -239,16 +237,14 @@ if __name__ == "__main__":
 
     for alpha in [0.1, 0.5, 1, 2, 5, 10]:
         logging.info(f"\n\n\n---Alpha {alpha}---\n")
+        results_json[alpha] = {}
 
-        results[alpha] = {}
-
-        correct_guesses_all = []
-        classed_results_all = []
+        results_all = []
 
         for number in range(10):
             logging.info(f"\n\n\n---Scenario {number}---\n")
 
-            results[alpha][number] = {}
+            results_json[alpha][number] = {}
 
             scenario = list(scenarios.keys())[number]
             A_meaning = ids_scenario[scenario][0]
@@ -257,10 +253,70 @@ if __name__ == "__main__":
             # Run the RSA model
             estimations, produced_utterances = multi_rsa(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 2, device, logging, True)
 
+            results_json[alpha][number]['estimations'] = estimations
+            results_json[alpha][number]['produced_utterances'] = produced_utterances
+
             logging.info(f'estimations: {estimations}')
-            results[alpha][number]['estimations'] = estimations
-            results[alpha][number]['produced_utterances'] = produced_utterances
+            estimations = np.array(estimations)
+            correct_guesses = (estimations == ground_truth[number]) * 1
+
+            # Store the results
+            results_all.append(correct_guesses)
+
+            # Create a figure and axis
+            fig, ax = plt.subplots()
+
+            # Plot the results for Agent A (first row)
+            ax.plot(range(1, correct_guesses.shape[1]+1), correct_guesses[0], label='Agent A')
+
+            # Plot the results for Agent B (second row)
+            ax.plot(range(1, correct_guesses.shape[1]+1), correct_guesses[1], label='Agent B')
+
+            # Set the labels and title
+            ax.set_xlabel('Round')
+            ax.set_ylabel('Result')
+            ax.set_title(f'Scenario {number}')
+
+            # Set the y-axis ticks and labels
+            ax.set_yticks([0, 1])
+            ax.set_yticklabels(['Incorrect guess', 'Correct guess'])
+
+            # Add a legend
+            ax.legend()
+
+            # Save the plot as a file
+            os.makedirs(f'plots/{date_string}/alpha_{alpha}', exist_ok=True)
+            plt.savefig(f'plots/{date_string}/alpha_{alpha}/scenario_{number}.png', bbox_inches='tight')
+        
+        results_all = np.array(results_all)
+
+        # Results
+        logging.info(f"\n\n\n---Results for alpha= {alpha}---\n")
+        logging.info(f'results_all: {results_all}')
+
+        # Create a figure and axis
+        fig, ax = plt.subplots()
+
+        # Plot the results for Agent A (first row)
+        ax.plot(range(1, results_all.shape[2]+1), np.mean(results_all[:, 0, :], axis=0), label='Agent A')
+
+        # Plot the results for Agent B (second row)
+        ax.plot(range(1, results_all.shape[2]+1), np.mean(results_all[:, 1, :], axis=0), label='Agent B')
+
+        # Set the labels and title
+        ax.set_xlabel('Round')
+        ax.set_title(f'Averaged results')
+
+        # Set the y-axis ticks and labels
+        ax.set_yticks([0, 1])
+        ax.set_yticklabels(['Incorrect guess', 'Correct guess'])
+
+        # Add a legend
+        ax.legend()
+
+        # Save the plot as a file
+        plt.savefig(f'plots/{date_string}/alpha_{alpha}/average.png', bbox_inches='tight')
 
     # Save results to a JSON file
     with open('results.json', 'w') as file:
-        json.dump(results, file)
+        json.dump(results_json, file)
