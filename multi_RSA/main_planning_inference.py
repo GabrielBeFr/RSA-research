@@ -1,5 +1,5 @@
 import logging
-from multi_rsa import multi_rsa
+from CRSA import CRSA
 import torch
 import datetime
 from tqdm import tqdm
@@ -251,7 +251,7 @@ if __name__ == "__main__":
             B_meaning = ids_scenario[scenario][1]
             
             # Run the RSA model
-            estimations, produced_utterances = multi_rsa(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 2, device, logging, True)
+            estimations, produced_utterances = CRSA(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 2, device, logging, True)
 
             results_json[alpha][number]['estimations'] = estimations
             results_json[alpha][number]['produced_utterances'] = produced_utterances
@@ -285,7 +285,7 @@ if __name__ == "__main__":
             ax.legend()
 
             # Save the plot as a file
-            os.makedirs(f'plots/{date_string}/alpha_{alpha}', exist_ok=True)
+            os.makedirs(f'plots_planning_inference/{date_string}/alpha_{alpha}', exist_ok=True)
             plt.savefig(f'plots/{date_string}/alpha_{alpha}/scenario_{number}.png', bbox_inches='tight')
         
         results_all = np.array(results_all)

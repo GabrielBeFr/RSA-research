@@ -1,4 +1,4 @@
-from multi_rsa import multi_rsa
+from CRSA import CRSA
 import torch
 import random
 import logging
@@ -61,12 +61,18 @@ if __name__ == "__main__":
     # Define the parameters
     alpha = 1
     number_of_rounds = 10
-    RSA_depth = 1
-    verbose = False
+    # RSA_depth = 1
+    verbose = True
+    deterministic = False
 
     # Define the logging
     date_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     logging.basicConfig(filename='logs/output_'+date_string+'.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+    logging.info("Starting the simulation for a Pragmatic Listener")
     # Run the Interactive RSA
-    multi_rsa(initial_lexica, initial_prior, game_model, A_meaning, B_meaning, A_utterances, B_utterances, alpha, number_of_rounds, RSA_depth, device, logging, verbose)
+    estimations, produced_utterances = CRSA(initial_lexica, initial_prior, game_model, A_meaning, B_meaning, A_utterances, B_utterances, alpha, number_of_rounds, 1, deterministic, device, logging, verbose)
+
+    logging.info("Starting the simulation for a Literal Listener")
+    # Run the Interactive RSA
+    estimations, produced_utterances = CRSA(initial_lexica, initial_prior, game_model, A_meaning, B_meaning, A_utterances, B_utterances, alpha, number_of_rounds, 0, deterministic, device, logging, verbose)
