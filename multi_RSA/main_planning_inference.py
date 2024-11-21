@@ -1,5 +1,6 @@
 import logging
 from CRSA import CRSA
+from RSA import multi_classic_RSA
 import torch
 import datetime
 from tqdm import tqdm
@@ -239,10 +240,16 @@ if __name__ == "__main__":
         logging.info(f"\n\n\n---Alpha {alpha}---\n")
         results_json[alpha] = {}
 
-        results_all = []
+        results_all_argmax = []
+        results_all_softmax = []
+        results_all_classic = []
+        results_all_rsa = []
 
         for number in range(10):
             logging.info(f"\n\n\n---Scenario {number}---\n")
+
+            # Create a figure and axis
+            fig, ax = plt.subplots()
 
             results_json[alpha][number] = {}
 
@@ -251,26 +258,45 @@ if __name__ == "__main__":
             B_meaning = ids_scenario[scenario][1]
             
             # Run the RSA model
-            estimations, produced_utterances = CRSA(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 2, device, logging, True)
-
-            results_json[alpha][number]['estimations'] = estimations
-            results_json[alpha][number]['produced_utterances'] = produced_utterances
-
-            logging.info(f'estimations: {estimations}')
+            estimations, produced_utterances, _, _ = CRSA(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 1, "argmax", device, logging, True)
+            results_json[alpha][number]['argmax'] = {}
+            results_json[alpha][number]['argmax']['estimations'] = estimations
+            results_json[alpha][number]['argmax']['produced_utterances'] = produced_utterances
+            logging.info(f'Argmax estimations: {estimations}')
             estimations = np.array(estimations)
             correct_guesses = (estimations == ground_truth[number]) * 1
+            results_all_argmax.append(correct_guesses)
+            ax.plot(range(1, correct_guesses.shape[1]+1), (correct_guesses[0]+correct_guesses[1])/2, label='Argmax')
 
-            # Store the results
-            results_all.append(correct_guesses)
-
-            # Create a figure and axis
-            fig, ax = plt.subplots()
-
-            # Plot the results for Agent A (first row)
-            ax.plot(range(1, correct_guesses.shape[1]+1), correct_guesses[0], label='Agent A')
-
-            # Plot the results for Agent B (second row)
-            ax.plot(range(1, correct_guesses.shape[1]+1), correct_guesses[1], label='Agent B')
+            estimations, produced_utterances, _, _ = CRSA(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 1, "softmax", device, logging, True)
+            results_json[alpha][number]['softmax'] = {}
+            results_json[alpha][number]['softmax']['estimations'] = estimations
+            results_json[alpha][number]['softmax']['produced_utterances'] = produced_utterances
+            logging.info(f'Softmax estimations: {estimations}')
+            estimations = np.array(estimations)
+            correct_guesses = (estimations == ground_truth[number]) * 1
+            results_all_softmax.append(correct_guesses)
+            ax.plot(range(1, correct_guesses.shape[1]+1), (correct_guesses[0]+correct_guesses[1])/2, label='Softmax')
+            
+            estimations, produced_utterances, _, _ = CRSA(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 1, "classic", device, logging, True)
+            results_json[alpha][number]['classic'] = {}
+            results_json[alpha][number]['classic']['estimations'] = estimations
+            results_json[alpha][number]['classic']['produced_utterances'] = produced_utterances
+            logging.info(f'Classic estimations: {estimations}')
+            estimations = np.array(estimations)
+            correct_guesses = (estimations == ground_truth[number]) * 1
+            results_all_classic.append(correct_guesses)
+            ax.plot(range(1, correct_guesses.shape[1]+1), (correct_guesses[0]+correct_guesses[1])/2, label='Classic')
+            
+            estimations, produced_utterances, _, _ = multi_classic_RSA(initial_lexica, prior, game_model, A_meaning, B_meaning, None, None, alpha, 10, 1, "classic", device, logging, True)
+            results_json[alpha][number]['rsa'] = {} 
+            results_json[alpha][number]['rsa']['estimations'] = estimations
+            results_json[alpha][number]['rsa']['produced_utterances'] = produced_utterances
+            logging.info(f'RSA estimations: {estimations}')
+            estimations = np.array(estimations)
+            correct_guesses = (estimations == ground_truth[number]) * 1
+            results_all_rsa.append(correct_guesses)
+            ax.plot(range(1, correct_guesses.shape[1]+1), (correct_guesses[0]+correct_guesses[1])/2, label='RSA')
 
             # Set the labels and title
             ax.set_xlabel('Round')
@@ -285,23 +311,29 @@ if __name__ == "__main__":
             ax.legend()
 
             # Save the plot as a file
-            os.makedirs(f'plots_planning_inference/{date_string}/alpha_{alpha}', exist_ok=True)
+            os.makedirs(f'plots/{date_string}/alpha_{alpha}', exist_ok=True)
             plt.savefig(f'plots/{date_string}/alpha_{alpha}/scenario_{number}.png', bbox_inches='tight')
         
-        results_all = np.array(results_all)
+        results_all_argmax = np.array(results_all_argmax)
+        results_all_softmax = np.array(results_all_softmax)
+        results_all_classic = np.array(results_all_classic)
+        results_all_rsa = np.array(results_all_rsa)
 
         # Results
         logging.info(f"\n\n\n---Results for alpha= {alpha}---\n")
-        logging.info(f'results_all: {results_all}')
+        logging.info(f'results_all_argmax: {results_all_argmax}')
+        logging.info(f'results_all_softmax: {results_all_softmax}')
+        logging.info(f'results_all_classic: {results_all_classic}')
+        logging.info(f'results_all_rsa: {results_all_rsa}')
 
         # Create a figure and axis
         fig, ax = plt.subplots()
 
-        # Plot the results for Agent A (first row)
-        ax.plot(range(1, results_all.shape[2]+1), np.mean(results_all[:, 0, :], axis=0), label='Agent A')
-
-        # Plot the results for Agent B (second row)
-        ax.plot(range(1, results_all.shape[2]+1), np.mean(results_all[:, 1, :], axis=0), label='Agent B')
+        # Plot the results
+        ax.plot(range(1, results_all_argmax.shape[2]+1), (np.mean(results_all_argmax[:, 0, :], axis=0)+np.mean(results_all_argmax[:, 1, :], axis=0))/2, label='Argmax')
+        ax.plot(range(1, results_all_softmax.shape[2]+1), (np.mean(results_all_softmax[:, 0, :], axis=0)+np.mean(results_all_softmax[:, 1, :], axis=0))/2, label='Softmax')
+        ax.plot(range(1, results_all_classic.shape[2]+1), (np.mean(results_all_classic[:, 0, :], axis=0)+np.mean(results_all_classic[:, 1, :], axis=0))/2, label='Classic')
+        ax.plot(range(1, results_all_rsa.shape[2]+1), (np.mean(results_all_rsa[:, 0, :], axis=0)+np.mean(results_all_rsa[:, 1, :], axis=0))/2, label='RSA')
 
         # Set the labels and title
         ax.set_xlabel('Round')
