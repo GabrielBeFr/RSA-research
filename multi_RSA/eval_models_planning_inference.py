@@ -1,5 +1,5 @@
 import logging
-from CRSA import CRSA
+from CRSA import CRSA, multi_RSA
 from RSA import multi_classic_RSA
 from random_model import random_model
 from greedy_model import greedy_model
@@ -281,16 +281,14 @@ if __name__ == "__main__":
     date_string = now.strftime("%Y-%m-%d_%H-%M-%S")
     logging.basicConfig(filename='logs/output_'+date_string+'.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    for alpha in [0.1,1,5,10]:
+    for alpha in [0.1,1,2,5,10]:
 
-            softmax_depth_0_results = []
-            softmax_depth_1_results = []
-            softmax_depth_2_results = []
-            softmax_rsa_results = []
+            old_multi_rsa_results = []
+            # softmax_depth_0_results = []
 
-            for number in tqdm(range(1000)):
-                random_id_scenario = random.randint(0,len(scenarios)-1)
-                scenario = list(scenarios.keys())[random_id_scenario]
+            for number in range(len(scenarios)):
+                #random_id_scenario = random.randint(0,len(scenarios)-1)
+                scenario = list(scenarios.keys())[number]
                 A_meaning = ids_scenario[scenario][0]
                 B_meaning = ids_scenario[scenario][1]
 
@@ -300,129 +298,104 @@ if __name__ == "__main__":
                     str_meaning_B = meanings_B[B_meaning].split('/')[i]
                     if str_meaning_A[-1] == 'A' and str_meaning_B[-1] == '1':
                         ground_truth = i+1
+
+                # Run the former version of CRSA
+                old_multi_rsa_estimations, _, _, _ = CRSA(
+                    initial_lexica = initial_lexica, 
+                    initial_prior = initial_prior, 
+                    game_model = game_model, 
+                    A_meaning = A_meaning, 
+                    B_meaning = B_meaning, 
+                    A_utterances = None, 
+                    B_utterances = None, 
+                    alpha = alpha, 
+                    number_of_rounds = 10, 
+                    RSA_depth = 1,
+                    sampling = 'argmax',
+                    device = device, 
+                    logging = logging, 
+                    verbose = True,
+                    )
                 
-                # Run the RSA model with a literal Listener and a pragmatic Speaker
-                softmax_depth_0_estimations, _, _, _ = CRSA(
-                    initial_lexica = initial_lexica, 
-                    initial_prior = initial_prior, 
-                    game_model = game_model, 
-                    A_meaning = A_meaning, 
-                    B_meaning = B_meaning, 
-                    A_utterances = None, 
-                    B_utterances = None, 
-                    alpha = alpha, 
-                    number_of_rounds = 10, 
-                    RSA_depth = 0, 
-                    sampling = 'softmax', 
-                    device = device, 
-                    logging = logging, 
-                    verbose = False,
-                    )
-                # Run the RSA model with depth 1
-                softmax_depth_1_estimations, _, _, _ = CRSA(
-                    initial_lexica = initial_lexica, 
-                    initial_prior = initial_prior, 
-                    game_model = game_model, 
-                    A_meaning = A_meaning, 
-                    B_meaning = B_meaning, 
-                    A_utterances = None, 
-                    B_utterances = None, 
-                    alpha = alpha, 
-                    number_of_rounds = 10, 
-                    RSA_depth = 1, 
-                    sampling = 'softmax', 
-                    device = device, 
-                    logging = logging, 
-                    verbose = False,
-                    )
-                # Run the RSA model with depth 2
-                softmax_depth_2_estimations, _, _, _ = CRSA(
-                    initial_lexica = initial_lexica, 
-                    initial_prior = initial_prior, 
-                    game_model = game_model, 
-                    A_meaning = A_meaning, 
-                    B_meaning = B_meaning, 
-                    A_utterances = None, 
-                    B_utterances = None, 
-                    alpha = alpha, 
-                    number_of_rounds = 10, 
-                    RSA_depth = 2, 
-                    sampling = 'softmax', 
-                    device = device, 
-                    logging = logging, 
-                    verbose = False,
-                    )
-                # Run classic RSA on multiple rounds
-                softmax_rsa_estimations, _, _, _ = multi_classic_RSA(
-                    initial_lexica = initial_lexica, 
-                    initial_prior = initial_prior, 
-                    game_model = game_model, 
-                    A_meaning = A_meaning, 
-                    B_meaning = B_meaning, 
-                    A_utterances = None, 
-                    B_utterances = None, 
-                    alpha = alpha, 
-                    number_of_rounds = 10, 
-                    RSA_depth = 1, 
-                    sampling = 'softmax', 
-                    device = device, 
-                    logging = logging, 
-                    verbose = False,
-                    )
+                # # Run the RSA model with a literal Listener and a pragmatic Speaker
+                # softmax_depth_0_estimations, _, _, _ = CRSA(
+                #     initial_lexica = initial_lexica, 
+                #     initial_prior = initial_prior, 
+                #     game_model = game_model, 
+                #     A_meaning = A_meaning, 
+                #     B_meaning = B_meaning, 
+                #     A_utterances = None, 
+                #     B_utterances = None, 
+                #     alpha = alpha, 
+                #     number_of_rounds = 10, 
+                #     RSA_depth = 0, 
+                #     sampling = 'softmax', 
+                #     device = device, 
+                #     logging = logging, 
+                #     verbose = False,
+                #     )
 
-                softmax_depth_0_estimations = np.array(softmax_depth_0_estimations)
-                softmax_depth_0_correct_guesses = (softmax_depth_0_estimations == ground_truth) * 1
+                old_multi_rsa_estimations = np.array(old_multi_rsa_estimations)
+                old_multi_rsa_correct_guesses = (old_multi_rsa_estimations == ground_truth) * 1
 
-                softmax_depth_1_estimations = np.array(softmax_depth_1_estimations)
-                softmax_depth_1_correct_guesses = (softmax_depth_1_estimations == ground_truth) * 1
-
-                softmax_depth_2_estimations = np.array(softmax_depth_2_estimations)
-                softmax_depth_2_correct_guesses = (softmax_depth_2_estimations == ground_truth) * 1
-
-                softmax_rsa_estimations = np.array(softmax_rsa_estimations)
-                softmax_rsa_correct_guesses = (softmax_rsa_estimations == ground_truth) * 1
-
+                # softmax_depth_0_estimations = np.array(softmax_depth_0_estimations)
+                # softmax_depth_0_correct_guesses = (softmax_depth_0_estimations == ground_truth) * 1
+                
                 # Store the results
-                softmax_depth_0_results.append(softmax_depth_0_correct_guesses)
-                softmax_depth_1_results.append(softmax_depth_1_correct_guesses)
-                softmax_depth_2_results.append(softmax_depth_2_correct_guesses)
-                softmax_rsa_results.append(softmax_rsa_correct_guesses)
+                old_multi_rsa_results.append(old_multi_rsa_correct_guesses)
+                # softmax_depth_0_results.append(softmax_depth_0_correct_guesses)
+
+                fig, ax = plt.subplots()
+
+                # Plot the results for former CRSA
+                ax.plot(
+                    range(1, old_multi_rsa_correct_guesses.shape[1]+1), 
+                    (old_multi_rsa_correct_guesses[ 0, :] + old_multi_rsa_correct_guesses[1, :])/2,
+                    label=f'CRSA with alpha {alpha}',
+                )
+
+                # # Plot the results for CRSA depth 0 with softmax sampling
+                # ax.plot(
+                #     range(1, softmax_depth_0_results.shape[2]+1), 
+                #     (np.mean(softmax_depth_0_results[:, 0, :], axis=0) + np.mean(softmax_depth_0_results[:, 1, :], axis=0))/2,
+                #     label='CRSA Depth 0 softmax',
+                #     )
                 
-            softmax_depth_0_results = np.array(softmax_depth_0_results)
-            softmax_depth_1_results = np.array(softmax_depth_1_results)
-            softmax_depth_2_results = np.array(softmax_depth_2_results)
-            softmax_rsa_results = np.array(softmax_rsa_results)
+                # Set the labels and title
+                ax.set_xlabel('Round')
+                ax.set_title(f'Percentage of correct guesses for alpha={alpha}')
+
+                # Set the y-axis ticks and labels
+                ax.set_yticks([0, 1])
+                ax.set_yticklabels(['0%', '100%'])
+
+                # Add a legend
+                ax.legend()
+
+                # Save the plot as a file
+                os.makedirs(f'plots_planning_inference/{date_string}', exist_ok=True)
+                plt.savefig(f'plots_planning_inference/{date_string}/alpha_{alpha}_scenario_{number}.png', bbox_inches='tight')
+
+                
+            old_multi_rsa_results = np.array(old_multi_rsa_results)
+            # softmax_depth_0_results = np.array(softmax_depth_0_results)
             
             # Create a figure and axis
             fig, ax = plt.subplots()
 
-            # Plot the results for CRSA depth 0 with softmax sampling
+            # Plot the results for former CRSA
             ax.plot(
-                range(1, softmax_depth_0_results.shape[2]+1), 
-                (np.mean(softmax_depth_0_results[:, 0, :], axis=0) + np.mean(softmax_depth_0_results[:, 1, :], axis=0))/2,
-                label='CRSA Depth 0 softmax',
-                )
+                range(1, old_multi_rsa_results.shape[2]+1), 
+                (np.mean(old_multi_rsa_results[:, 0, :], axis=0) + np.mean(old_multi_rsa_results[:, 1, :], axis=0))/2,
+                label='CRSA',
+            )
 
-            # Plot the results for CRSA depth 1 with softmax sampling
-            ax.plot(
-                range(1, softmax_depth_1_results.shape[2]+1), 
-                (np.mean(softmax_depth_1_results[:, 0, :], axis=0) + np.mean(softmax_depth_1_results[:, 1, :], axis=0))/2, 
-                label='CRSA Depth 1 softmax', 
-                )
-
-            # Plot the results for CRSA depth 2 with softmax sampling
-            ax.plot(
-                range(1, softmax_depth_2_results.shape[2]+1), 
-                (np.mean(softmax_depth_2_results[:, 0, :], axis=0) + np.mean(softmax_depth_2_results[:, 1, :], axis=0))/2, 
-                label='CRSA Depth 2 softmax', 
-                )
-            
-            # Plot the results for multi-turns softmax RSA
-            ax.plot(
-                range(1, softmax_rsa_results.shape[2]+1), 
-                (np.mean(softmax_rsa_results[:, 0, :], axis=0) + np.mean(softmax_rsa_results[:, 1, :], axis=0))/2, 
-                label='Softmax RSA', 
-                )
+            # # Plot the results for CRSA depth 0 with softmax sampling
+            # ax.plot(
+            #     range(1, softmax_depth_0_results.shape[2]+1), 
+            #     (np.mean(softmax_depth_0_results[:, 0, :], axis=0) + np.mean(softmax_depth_0_results[:, 1, :], axis=0))/2,
+            #     label='CRSA Depth 0 softmax',
+            #     )
             
             # Set the labels and title
             ax.set_xlabel('Round')
@@ -442,8 +415,5 @@ if __name__ == "__main__":
             # Save results in an npz file
             os.makedirs(f'results_planning_inference/{date_string}', exist_ok=True)
             np.savez(f'results_planning_inference/{date_string}/alpha_{alpha}_results.npz', 
-                softmax_depth_0_results=softmax_depth_0_results, 
-                softmax_depth_1_results=softmax_depth_1_results, 
-                softmax_depth_2_results=softmax_depth_2_results, 
-                softmax_rsa_results=softmax_rsa_results, 
+                old_multi_rsa_results=old_multi_rsa_results,
                 )
