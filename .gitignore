@@ -5,9 +5,12 @@ logs/
 .vscode/
 Arthur_RSA/
 multi_RSA/planning_inference/data
+multi_RSA/plots_toy_example/
 multi_RSA/__pycache__/
 multi_RSA/logs/
 bash/
-multi_RSA/planning_inference/data/
 multi_RSA/logs/
 multi_RSA/plots/
+plots/
+pip_khani/
+multi_RSA/results/

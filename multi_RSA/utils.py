@@ -2,6 +2,7 @@ import torch
 import random
 import numpy as np
 import logging
+from matplotlib import pyplot as plt
 
 class bcolors:
     HEADER = '\033[95m'
@@ -89,8 +90,6 @@ def test_variables_coherency(
         initial_lexica: list,
         n_meanings: list,
         n_utterances: list,
-        A_utterances: list=None,
-        B_utterances: list=None,
         number_of_rounds: int=2,
 ):
     '''Test the variables for coherency.
@@ -111,16 +110,66 @@ def test_variables_coherency(
         except AssertionError:
             logging.error(f"The number of utterances of Agent {i} in the initial lexicon does not match the number of utterances in the prior.")
             return False
-    if A_utterances is not None:
-        try:
-            assert len(A_utterances) == number_of_rounds
-        except AssertionError:
-            logging.error(f"The number of utterances of Agent A does not match the number of rounds.")
-            return False
-    if B_utterances is not None:
-        try:
-            assert len(B_utterances) == number_of_rounds
-        except AssertionError:
-            logging.error(f"The number of utterances of Agent B does not match the number of rounds.")
-            return False
     return True
+
+def plot_scenario(id_scenario_to_plot, df_games):
+    # scenarios = {'0,0,circle,cyan,A,1,0/0,1,rect,yellow,C,2,0/...', ...}
+    scenarios = {}
+    numero = 0
+    for gameid_roundNum in df_games['gameid_roundNum'].unique():
+        scenario_key = ""
+        for row in df_games[df_games['gameid_roundNum'] == gameid_roundNum].iterrows():
+            if scenario_key != "":
+                scenario_key += "/"
+            scenario_key += str(row[1]['pos_x']) + "," + str(row[1]['pos_y']) + "," + str(row[1]['shape']) + "," + str(row[1]['color']) + "," + str(row[1]['char']) + "," + str(row[1]['num']) + "," + str(row[1]['goal'])
+        if scenario_key not in scenarios:
+            scenarios[scenario_key] = {}
+            numero += 1
+
+    # Define the colors and shapes
+    colors = {'cyan': 'c', 'Chartreuse': 'lime', 'yellow': 'gold'}
+    shapes = {'rect': 's', 'circle': 'o', 'diamond': 'D'}
+
+    # Define the positions
+    positions = {
+        '0,0': (0, 0),
+        '0,1': (0, 1),
+        '0,2': (0, 2),
+        '1,0': (1, 0),
+        '1,1': (1, 1),
+        '1,2': (1, 2),
+        '2,0': (2, 0),
+        '2,1': (2, 1),
+        '2,2': (2, 2)
+    }
+
+    # Define the underlined red text style
+    underline_red = dict(facecolor='none', edgecolor='red', boxstyle='round,pad=1')
+
+    # Plot the scenarios
+    fig, ax = plt.subplots(figsize=(10, 8))  # Set the figure size here
+    
+
+    scenario = list(scenarios.keys())[id_scenario_to_plot]
+    objects = scenario.split('/')
+    for obj in objects:
+        x, y, shape, color, char, num, goal = obj.split(',')
+        pos = positions[x + ',' + y]
+        if goal == '1':
+            ax.text(pos[0], - pos[1], char + num, color='black', size=20, fontweight='bold', ha='center', va='center', bbox=underline_red)
+        else:
+            ax.text(pos[0], - pos[1], char + num, color='black', size=20, ha='center', va='center')
+        ax.plot(pos[0], -pos[1], marker=shapes[shape], color=colors[color], markersize=40)  # Flip the y-axis
+    ax.set_xlim([-0.5, 2.5])
+    ax.set_ylim([-2.5, 0.5])  # Adjust the y-axis limits
+    ax.set_xticks(range(3))
+    ax.set_yticks(range(-2, 1))  # Adjust the y-axis ticks
+    ax.set_xticklabels(['0', '1', '2'])
+    ax.set_yticklabels(['2', '1', '0'])  # Adjust the y-axis tick labels
+    ax.set_xlabel('X Position')
+    ax.set_ylabel('Y Position')
+    ax.xaxis.set_label_position('top')
+    ax.set_title('Scenario ' + str(id_scenario_to_plot))
+    ax.grid(True)
+    plt.tight_layout()
+    plt.show()

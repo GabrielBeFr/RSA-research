@@ -47,7 +47,7 @@ def CRSA(
     prior = initial_prior
     
     # Check the variables for coherency
-    if not test_variables_coherency(n_agents, initial_lexica, n_meanings, n_utterances, A_utterances, B_utterances, number_of_rounds):
+    if not test_variables_coherency(n_agents, initial_lexica, n_meanings, n_utterances, number_of_rounds):
         return None
     
     # Print the initial conditions
@@ -75,9 +75,14 @@ def CRSA(
     speakers = [[],[]]
     listeners = [[],[]]
     priors = [initial_prior]        
+    priors = [initial_prior]        
 
     # Run the CRSA for the specified number of rounds
     for round in range(number_of_rounds):
+        speakers[0].append([])
+        speakers[1].append([])
+        listeners[0].append([])
+        listeners[1].append([])
         speakers[0].append([])
         speakers[1].append([])
         listeners[0].append([])
@@ -94,12 +99,14 @@ def CRSA(
         listener = literal_listener_B(initial_lexica[0], prior, verbose)
         # Save the literal listener probabilities
         listeners[1][round].append(listener[B_meaning, :, :])
+        listeners[1][round].append(listener[B_meaning, :, :])
 
         i = 0
         while True:
             # Compute the pragmatic speaker A
             speaker = pragmatic_speaker_A(listener, prior, alpha, RSA_depth, verbose)
             # Save the pragmatic speaker probabilities
+            speakers[0][round].append(speaker[A_meaning])
             speakers[0][round].append(speaker[A_meaning])
 
             i += 1
@@ -110,8 +117,9 @@ def CRSA(
             listener = pragmatic_listener_B(speaker, prior, alpha, RSA_depth, verbose)
             # Save the pragmatic listener probabilities
             listeners[1][round].append(listener[B_meaning, :, :])
+            listeners[1][round].append(listener[B_meaning, :, :])
 
-        if A_utterances is None:
+        if A_utterances is None or len(A_utterances) <= round:
             try:
                 utterance = sample(speaker[A_meaning], sampling) # Compute the utterance if not known
             except Exception as e:
@@ -166,7 +174,7 @@ def CRSA(
         
 
         # Compute the utterance
-        if B_utterances is None:
+        if B_utterances is None or len(B_utterances) <= round:
             try:
                 utterance = sample(speaker[B_meaning], sampling)
             except Exception as e:
@@ -192,6 +200,134 @@ def CRSA(
         else:
             if verbose: print("Agent A's meaning is unknown.")
             logging.info("Agent A's meaning is unknown.")
+
+        # Update the prior
+        prior = speaker[:, utterance].view(1, n_meanings[1], 1) * prior # S(v2|mB, u1, v1, u2) x P(mA, mB, y, u1, v1, u2) -> P(mA, mB, y, u1, v1, u2, v2). The utterances are fixed and thus do not account as dimensions. However, the mmeanings are not fixed as each agent ignore the meaning of the other agent.
+        prior = prior/prior.sum() # Normalize the prior to avoid decreasing probabilities
+        priors.append(prior)
+
+    return estimations, produced_utterances, speakers, listeners, priors
+
+
+
+
+
+
+######################
+
+
+
+
+
+
+def multi_RSA(
+        initial_lexica: list, 
+        initial_prior: torch.FloatTensor, 
+        game_model: dict, 
+        A_meaning: int=None, 
+        B_meaning: int=None, 
+        A_utterances: list=None, 
+        B_utterances: list=None, 
+        alpha: int=1, 
+        number_of_rounds: int=2, 
+        RSA_depth: int=1, 
+        sampling: str="classic",
+        device: torch.device="cpu", 
+        logging: logging.Logger=None,
+        verbose: bool=False,
+        ):
+    '''Run the RSA model for the specified number of iterations. 
+    NOTA BENE: 
+    - The model is currently only implemented for 2 agents.
+    - The depth of RSA is fixed to 1.
+    input:
+    * initial_lexica, a list of 2D torch tensors of float, each gives a correspondance between i-th agent's meanings and i-th agent's utterances
+    * initial_prior, a (n_agent+1)D torch tensor of float, the prior on the meaning of the agent 1 (dimension 0), ... the meaning of the agent n_agent (dimension n_agent-1), the concepts y (dimension n_agent)
+    * game_model, a dict, the model of the game of the form {"mA": meanings_A, "mB": meanings_B, "u": utterances_A, "v": utterances_B, "y": Y}
+    * A_meaning, an int, the meaning agent A
+    * B_meaning, an int, the meaning agent B
+    * A_utterances, a list of str, the utterances of agent A if known (default=None)
+    * B_utterances, a list of str, the utterances of agent B if known (default=None)
+    * alpha, a float, the alpha pragmatism parameter of RSA (default=1)
+    * number_of_rounds, an int, the number of rounds to run the model for (default=2)
+    * RSA_depth, an int, the depth of the RSA model (default=1)
+    * choice_method, a string, what sampling method to use for utterance and estimation choices (default="classic_sample")
+    * device, a torch device, the device to run the model on (default="cpu")
+    * logging, a logging.Logger, the logger to log the results (default=None)
+    * verbose, a boolean, whether to print the probabilities at each step (default=False)
+    '''
+
+    # Define useful constants
+    n_agents = len(initial_lexica)
+    n_utterances = [initial_lexica[i].shape[1] for i in range(n_agents)]
+    n_meanings = [initial_prior.shape[i] for i in range(n_agents)]
+    prior = initial_prior
+    
+    # Check the variables for coherency
+    if not test_variables_coherency(n_agents, initial_lexica, n_meanings, n_utterances, A_utterances, B_utterances, number_of_rounds):
+        return None
+    
+    # Print the initial conditions
+    if A_meaning is not None:
+        logging.info(f"Agent A observes: {game_model['mA'][A_meaning]} / id={A_meaning}.")
+        if verbose:
+            print("Agent A observes: " + bcolors.OKBLUE + f"{game_model['mA'][A_meaning]} / id={A_meaning}." + bcolors.ENDC)
+    else:
+        logging.info("Agent A's meaning is not known.")
+        if verbose:
+            print("Agent A's meaning is not known.")
+    if B_meaning is not None:
+        logging.info(f"Agent B observes: {game_model['mB'][B_meaning]} / id={B_meaning}.")
+        if verbose:
+            print("Agent B observes: " + bcolors.OKBLUE + f"{game_model['mB'][B_meaning]} / id={B_meaning}." + bcolors.ENDC)
+    else:
+        logging.info("Agent B's meaning is not known.")
+        if verbose:
+            print("Agent B's meaning is not known.")
+
+    # Initialize the variables
+    last_round = False
+    estimations = [[],[]]
+    produced_utterances = [[],[]]
+    speakers = [[],[]]
+    listeners = [[],[]]
+    for i in range(RSA_depth+1):
+        listeners[0].append([])
+        listeners[1].append([])
+        speakers[0].append([])
+        speakers[1].append([])
+
+    # Run the CRSA for the specified number of rounds
+    for round in range(number_of_rounds):
+        logging.info(f"Round: {round}")
+        if verbose:
+            print(f"Round: {round}")
+
+        if round == number_of_rounds - 1:
+            last_round = True
+
+        #### Agent A speaking ####
+        # Compute the literal listener B
+        listener = literal_listener_B(initial_lexica[0], prior, verbose)
+        # Save the literal listener probabilities
+        listeners[1][0].append(listener[B_meaning, :, :])
+
+        # Compute the pragmatic speaker A
+        speaker = pragmatic_speaker_A(listener, prior, alpha, RSA_depth, verbose)
+        # Save the pragmatic speaker probabilities
+        speakers[0][i].append(speaker[A_meaning])
+
+        if A_utterances is None:
+            try:
+                utterance = sample(speaker[A_meaning], sampling) # Compute the utterance if not known
+            except Exception as e:
+                print(f"Line 104 and: {speaker[A_meaning]}")
+        else:
+            utterance = A_utterances[round] # Retrieve the utterance if known
+        produced_utterances[0].append(utterance)
+        logging.info(f"Utterance of Agent A: {game_model['u'][utterance]}")
+        if verbose:
+            print(f"Utterance of Agent A: " + bcolors.OKGREEN + f"{game_model['u'][utterance]}" + bcolors.ENDC)
 
         # Update the prior
         prior = speaker[:, utterance].view(1, n_meanings[1], 1) * prior # S(v2|mB, u1, v1, u2) x P(mA, mB, y, u1, v1, u2) -> P(mA, mB, y, u1, v1, u2, v2). The utterances are fixed and thus do not account as dimensions. However, the mmeanings are not fixed as each agent ignore the meaning of the other agent.
