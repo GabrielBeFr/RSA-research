@@ -10,12 +10,15 @@ def random_model(
         B_meaning: int=None, 
         A_utterances: list=None, 
         B_utterances: list=None, 
+        alpha: float=1,
         number_of_rounds: int=2, 
+        RSA_depth: int=None,
+        sampling: str="argmax",
         device: torch.device="cpu", 
         logging: logging.Logger=None,
         verbose: bool=False,
         ):
-    '''Run the RSA model for the specified number of iterations. 
+    '''Run a random model. 
     NOTA BENE: 
     - The model is currently only implemented for 2 agents.
     - The depth of RSA is fixed to 1.
@@ -65,6 +68,8 @@ def random_model(
     last_round = False
     estimations = [[],[]]
     produced_utterances = [[],[]]
+    list_coherent_estimations = [[],[]]
+    list_coherent_actions = [[],[]]
 
     # Run the CRSA for the specified number of rounds
     for round in range(number_of_rounds):
@@ -84,6 +89,7 @@ def random_model(
                 coherent_actions = torch.ones(n_utterances[0], device=device)
             # Give uniform probability to the actions that are coherent with the context
             utterance = sample(coherent_actions/coherent_actions.sum(), sampling="classic")
+            list_coherent_actions[0].append(coherent_actions/coherent_actions.sum())
         else:
             utterance = A_utterances[round]
 
@@ -97,6 +103,7 @@ def random_model(
         else:
             coherent_estimations = torch.ones(n_meanings[1], device=device)
         estimation = sample(coherent_estimations/coherent_estimations.sum(), sampling="classic")
+        list_coherent_estimations[1].append(coherent_estimations/coherent_estimations.sum())
 
         estimations[1].append(estimation)
         logging.info(f"Estimated truth by a random Agent B: {game_model['y'][estimation]}")
@@ -113,6 +120,7 @@ def random_model(
                 coherent_actions = torch.ones(n_utterances[1], device=device)
             # Give uniform probability to the actions that are coherent with the context
             utterance = sample(coherent_actions/coherent_actions.sum(), sampling="classic")
+            list_coherent_actions[1].append(coherent_actions/coherent_actions.sum())
         else:
             utterance = B_utterances[round]
 
@@ -126,11 +134,12 @@ def random_model(
         else:
             coherent_estimations = torch.ones(n_meanings[0], device=device)
         estimation = sample(coherent_estimations/coherent_estimations.sum(), sampling="classic")
+        list_coherent_estimations[0].append(coherent_estimations/coherent_estimations.sum())
 
         estimations[0].append(estimation)
         logging.info(f"Estimated truth by a random Agent A: {game_model['y'][estimation]}")
         if verbose:
             print(f"Estimated truth by a random Agent A: " + bcolors.OKCYAN + f"{game_model['y'][estimation]}" + bcolors.ENDC)
 
-    return estimations, produced_utterances
+    return estimations, produced_utterances, list_coherent_actions, list_coherent_estimations, [prior]
         

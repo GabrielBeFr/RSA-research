@@ -19,10 +19,9 @@ def greedy_model(
         logging: logging.Logger=None,
         verbose: bool=False,
         ):
-    '''Run the RSA model for the specified number of iterations. 
+    '''Run the greedy model for the specified number of iterations. 
     NOTA BENE: 
     - The model is currently only implemented for 2 agents.
-    - The depth of RSA is fixed to 1.
     input:
     * initial_lexica, a list of 2D torch tensors of float, each gives a correspondance between i-th agent's meanings and i-th agent's utterances
     * initial_prior, a (n_agent+1)D torch tensor of float, the prior on the meaning of the agent 1 (dimension 0), ... the meaning of the agent n_agent (dimension n_agent-1), the concepts y (dimension n_agent)
@@ -72,6 +71,9 @@ def greedy_model(
     last_round = False
     estimations = [[],[]]
     produced_utterances = [[],[]]
+    list_speakers = [[],[]]
+    list_listeners = [[],[]]
+    list_prior = [initial_prior]
 
     # Run the CRSA for the specified number of rounds
     for round in range(number_of_rounds):
@@ -101,6 +103,7 @@ def greedy_model(
             # Sample the produced utterance
             if score.sum() == 0: score = coherent_utterances
             utterance = sample(score/score.sum(), sampling="classic")
+            list_speakers[0].append(score)
         else:
             utterance = A_utterances[round]
 
@@ -121,9 +124,11 @@ def greedy_model(
                 # Update the prior
                 prior = pragmatic_speaker[:, utterance].view(n_meanings[0], 1, 1) * prior # S(u2|mA, u1, v1) x P(mA, mB, y, u1, v1) -> P(mA, mB, y, u1, v1, u2). The utterances are fixed and thus do not account as dimensions. However, the mmeanings are not fixed as each agent ignore the meaning of the other agent.
                 prior = prior/prior.sum()
+                list_prior.append(prior)
                 
                 # Compute the pragmatic listener B
                 pragmatic_listener = pragmatic_listener_B(pragmatic_speaker, prior, alpha, RSA_depth, verbose)
+                list_listeners[1].append(pragmatic_listener)
 
                 # Sample the estimation
                 try:
@@ -164,6 +169,7 @@ def greedy_model(
             # Sample the produced utterance
             if score.sum() == 0: score = coherent_utterances
             utterance = sample(score/score.sum(), sampling="classic")
+            list_speakers[1].append(score)
         else:
             utterance = B_utterances[round]
 
@@ -182,11 +188,13 @@ def greedy_model(
                 pragmatic_speaker = pragmatic_speaker_B(literal_listener, prior, alpha, RSA_depth, verbose)
                 
                 # Update the prior
-                prior = pragmatic_speaker[:, utterance].view(n_meanings[1], 1, 1) * prior # S(u2|mA, u1, v1) x P(mA, mB, y, u1, v1) -> P(mA, mB, y, u1, v1, u2). The utterances are fixed and thus do not account as dimensions. However, the mmeanings are not fixed as each agent ignore the meaning of the other agent.
+                prior = pragmatic_speaker[:, utterance].view(1, n_meanings[1], 1) * prior # S(u2|mA, u1, v1) x P(mA, mB, y, u1, v1) -> P(mA, mB, y, u1, v1, u2). The utterances are fixed and thus do not account as dimensions. However, the mmeanings are not fixed as each agent ignore the meaning of the other agent.
                 prior = prior/prior.sum()
+                list_prior.append(prior)
                 
                 # Compute the pragmatic listener A
                 pragmatic_listener = pragmatic_listener_A(pragmatic_speaker, prior, alpha, RSA_depth, verbose)
+                list_listeners[0].append(pragmatic_listener)
 
                 # Sample the estimation
                 try:
@@ -207,5 +215,5 @@ def greedy_model(
         else:
             logging.info("Agent A's meaning is not known.")
 
-    return estimations, produced_utterances
+    return estimations, produced_utterances, list_speakers, list_listeners, prior
         

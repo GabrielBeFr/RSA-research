@@ -121,8 +121,8 @@ def multi_classic_RSA(
     last_round = False
     estimations = [[],[]]
     produced_utterances = [[],[]]
-    last_speakers = [[],[]]
-    last_listeners = [[],[]]
+    list_speakers = [[],[]]
+    list_listeners = [[],[]]
 
     for round in range(number_of_rounds):
         # Round agent A
@@ -133,6 +133,9 @@ def multi_classic_RSA(
             depth=RSA_depth, 
             verbose=verbose,
             ) # (prior.sum(dim=2)).sum(dim=1) for having only P(m_A) in the prior instead of P(mA,mB,y)
+        
+        list_listeners[1].append(listeners)
+        list_speakers[0].append(speakers)
 
         produced_utterance = sample(speakers[-1][A_meaning,:], sampling)
         produced_utterances[0].append(produced_utterance)
@@ -155,6 +158,9 @@ def multi_classic_RSA(
             depth=RSA_depth,
             verbose=verbose,
             ) # (prior.sum(dim=2)).sum(dim=0) for having only P(m_B) in the prior instead of P(mA,mB,y)
+        
+        list_listeners[0].append(listeners)
+        list_speakers[1].append(speakers)
 
         produced_utterance = sample(speakers[-1][B_meaning,:], sampling)
         produced_utterances[1].append(produced_utterance)
@@ -170,4 +176,4 @@ def multi_classic_RSA(
 
         estimations[0].append(estimation)
 
-    return estimations, produced_utterances, last_speakers, last_listeners
+    return estimations, produced_utterances, list_speakers, list_listeners, [prior]
